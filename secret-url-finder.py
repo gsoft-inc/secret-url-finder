@@ -86,14 +86,19 @@ def calculate_url_score(url):
     return score
 
 
-def merge_results(*results):
+def merge_results(sorted, *results):
     # Reverses the time to sort results from most recent to oldest.
     def wrap(results):
         for time, url in results:
             yield pytz.utc.localize(datetime.datetime.max) - time, time, url
 
-    for offset, time, url in heapq.merge(*[wrap(r) for r in results]):
-        yield time, url
+    if sorted:
+        for offset, time, url in heapq.merge(*[wrap(r) for r in results]):
+            yield time, url
+    else:
+        for r in results:
+            for x in r:
+                yield x
 
 
 def scan_alienvault_hostname(hostname):
@@ -108,15 +113,15 @@ def scan_alienvault_hostname(hostname):
         page += 1
 
 
-def scan_alienvault(domain):
+def scan_alienvault(domain, sorted):
     result = requests.get("https://otx.alienvault.com/otxapi/indicator/hostname/passive_dns/%s" % domain).json()
     hostnames = list(set([r["hostname"] for r in result["passive_dns"] if domain in r["hostname"]]))
     hostnames.append(domain)
-    for time, url in merge_results(*[scan_alienvault_hostname(hostname) for hostname in hostnames]):
+    for time, url in merge_results(sorted, *[scan_alienvault_hostname(hostname) for hostname in hostnames]):
         yield time, url
 
 
-def scan_urlscan(domain):
+def scan_urlscan(domain, sorted):
     offset = 0
 
     while True:
@@ -137,7 +142,7 @@ def scan_urlscan(domain):
         yield ""
 
 
-def scan_urlquery(domain):
+def scan_urlquery(domain, sorted):
     html = requests.get("https://urlquery.net/search?q=%s" % domain).content
     soup = BeautifulSoup(html, features="html.parser")
     for row in soup.findAll('tr', attrs={'class': re.compile("(even|odd)_highlight")}):
@@ -154,10 +159,10 @@ def scan_urlquery(domain):
                     yield time, value
 
 
-def scan_all(domain):
+def scan_all(domain, sorted):
     urls = set()
     providers = [scan_alienvault, scan_urlscan, scan_urlquery]
-    for time, url in merge_results(*[provider(domain) for provider in providers]):
+    for time, url in merge_results(sorted, *[provider(domain, sorted) for provider in providers]):
         if url not in urls:
             urls.add(url)
             yield time, url
@@ -167,9 +172,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Find secret URLs.')
     parser.add_argument('--domain', help='The domain to search', required=True)
     parser.add_argument('-f', '--filter', help='Only show URLs with secrets', action='store_true')
+    parser.add_argument('-s', '--sorted', help='Sort results from newest to oldest', action='store_true')
     args = parser.parse_args()
 
-    for time, url in scan_all(args.domain):
+    for time, url in scan_all(args.domain, args.sorted):
         score = calculate_url_score(url)
         line = "%s - %s" % (str(time), url)
         if score >= 100:
