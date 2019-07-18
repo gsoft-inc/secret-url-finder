@@ -63,6 +63,9 @@ instance/
 # Scrapy stuff:
 .scrapy
 
+# Pycharm stuff:
+.idea/
+
 # Sphinx documentation
 docs/_build/
 
