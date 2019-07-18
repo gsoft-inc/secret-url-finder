@@ -77,11 +77,10 @@ def calculate_url_score(url):
         if any([k.startswith(prefix) for prefix in ignored_query_string_prefixes]) or k in ignored_query_string_parameters:
             continue
 
-        if "id" in k or "token" in k or is_secret(value) or calculate_entropy(value) > 3:
-            score += 100
-
         if urlparse(value).netloc:
             score += calculate_url_score(value)
+        elif "id" in k or "token" in k or is_secret(value) or calculate_entropy(value) > 3:
+            score += 100
 
     return score
 
