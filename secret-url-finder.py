@@ -8,7 +8,9 @@ from dateutil import parser as date_parser
 import math
 import string
 import argparse
-
+import heapq
+import pytz
+import datetime
 
 ignored_query_string_parameters = ["_ga", "__gda__", "_gac", "gclid", "msclkid", "_hsenc"]
 ignored_query_string_prefixes = ["utm_"]
@@ -84,20 +86,34 @@ def calculate_url_score(url):
     return score
 
 
+def merge_results(*results):
+    # Reverses the time to sort results from most recent to oldest.
+    def wrap(results):
+        for time, url in results:
+            yield pytz.utc.localize(datetime.datetime.max) - time, time, url
+
+    for offset, time, url in heapq.merge(*[wrap(r) for r in results]):
+        yield time, url
+
+
+def scan_alienvault_hostname(hostname):
+    page = 1
+    while True:
+        result = requests.get("https://otx.alienvault.com/otxapi/indicator/hostname/url_list/%s?indicatorType=hostname&limit=100&page=%d" % (hostname, page)).json()
+        for r in result["url_list"]:
+            yield pytz.utc.localize(date_parser.parse(r["date"])), r["url"]
+
+        if not result["has_next"]:
+            break
+        page += 1
+
+
 def scan_alienvault(domain):
     result = requests.get("https://otx.alienvault.com/otxapi/indicator/hostname/passive_dns/%s" % domain).json()
     hostnames = list(set([r["hostname"] for r in result["passive_dns"] if domain in r["hostname"]]))
     hostnames.append(domain)
-    for hostname in hostnames:
-        page = 1
-        while True:
-            result = requests.get("https://otx.alienvault.com/otxapi/indicator/hostname/url_list/%s?indicatorType=hostname&limit=100&page=%d" % (hostname, page)).json()
-            for r in result["url_list"]:
-                yield r["url"], date_parser.parse(r["date"])
-
-            if not result["has_next"]:
-                break
-            page += 1
+    for time, url in merge_results(*[scan_alienvault_hostname(hostname) for hostname in hostnames]):
+        yield time, url
 
 
 def scan_urlscan(domain):
@@ -109,11 +125,11 @@ def scan_urlscan(domain):
             url = result["page"]["url"]
             time = date_parser.parse(result["task"]["time"])
             if domain in urlparse(url).netloc:
-                yield url, time
+                yield time, url
 
             for url in requests.get(result["result"]).json()["lists"]["urls"]:
                 if domain in urlparse(url).netloc:
-                    yield url, time
+                    yield time, url
 
         if len(results) < 100:
             break
@@ -130,21 +146,21 @@ def scan_urlquery(domain):
         time = date_parser.parse(row.find("center").string)
 
         if domain in parsed.netloc:
-            yield url, time
+            yield time, url
         elif parsed.query:
             for k, value in parse_qs(parsed.query).items():
                 value = value[0]
                 if value.startswith("http") and domain in urlparse(value).netloc:
-                    yield value, time
+                    yield time, value
 
 
 def scan_all(domain):
     urls = set()
-    for provider in [scan_alienvault, scan_urlscan, scan_urlquery]:
-        for url, time in provider(domain):
-            if url not in urls:
-                urls.add(url)
-                yield url, time
+    providers = [scan_alienvault, scan_urlscan, scan_urlquery]
+    for time, url in merge_results(*[provider(domain) for provider in providers]):
+        if url not in urls:
+            urls.add(url)
+            yield time, url
 
 
 if __name__ == "__main__":
@@ -153,7 +169,7 @@ if __name__ == "__main__":
     parser.add_argument('-f', '--filter', help='Only show URLs with secrets', action='store_true')
     args = parser.parse_args()
 
-    for url, time in scan_all(args.domain):
+    for time, url in scan_all(args.domain):
         score = calculate_url_score(url)
         line = "%s - %s" % (str(time), url)
         if score >= 100:
