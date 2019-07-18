@@ -100,27 +100,18 @@ def merge_results(sorted, *results):
                 yield x
 
 
-def scan_alienvault_hostname(hostname):
+def scan_alienvault(domain):
     page = 1
     while True:
-        result = requests.get("https://otx.alienvault.com/otxapi/indicator/hostname/url_list/%s?indicatorType=hostname&limit=100&page=%d" % (hostname, page)).json()
+        result = requests.get("https://otx.alienvault.com/otxapi/indicator/domain/url_list/%s?limit=50&page=%d" % (domain, page)).json()
         for r in result["url_list"]:
             yield pytz.utc.localize(date_parser.parse(r["date"])), r["url"]
-
         if not result["has_next"]:
             break
         page += 1
 
 
-def scan_alienvault(domain, sorted):
-    result = requests.get("https://otx.alienvault.com/otxapi/indicator/hostname/passive_dns/%s" % domain).json()
-    hostnames = list(set([r["hostname"] for r in result["passive_dns"] if domain in r["hostname"]]))
-    hostnames.append(domain)
-    for time, url in merge_results(sorted, *[scan_alienvault_hostname(hostname) for hostname in hostnames]):
-        yield time, url
-
-
-def scan_urlscan(domain, sorted):
+def scan_urlscan(domain):
     offset = 0
 
     while True:
@@ -141,7 +132,7 @@ def scan_urlscan(domain, sorted):
         yield ""
 
 
-def scan_urlquery(domain, sorted):
+def scan_urlquery(domain):
     html = requests.get("https://urlquery.net/search?q=%s" % domain).content
     soup = BeautifulSoup(html, features="html.parser")
     for row in soup.findAll('tr', attrs={'class': re.compile("(even|odd)_highlight")}):
@@ -161,7 +152,7 @@ def scan_urlquery(domain, sorted):
 def scan_all(domain, sorted):
     urls = set()
     providers = [scan_alienvault, scan_urlscan, scan_urlquery]
-    for time, url in merge_results(sorted, *[provider(domain, sorted) for provider in providers]):
+    for time, url in merge_results(sorted, *[provider(domain) for provider in providers]):
         if url not in urls:
             urls.add(url)
             yield time, url
