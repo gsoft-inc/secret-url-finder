@@ -12,7 +12,7 @@ import heapq
 import pytz
 import datetime
 
-ignored_query_string_parameters = ["_ga", "__gda__", "_gac", "gclid", "msclkid", "_hsenc"]
+ignored_query_string_parameters = ["_ga", "__gda__", "_gac", "gclid", "msclkid", "_hsenc", "mkt_tok"]
 ignored_query_string_prefixes = ["utm_"]
 
 def compile_re(s):
