@@ -100,15 +100,18 @@ def merge_results(sorted, *results):
                 yield x
 
 
-def scan_alienvault(domain):
-    page = 1
-    while True:
-        result = requests.get("https://otx.alienvault.com/otxapi/indicator/domain/url_list/%s?limit=50&page=%d" % (domain, page)).json()
-        for r in result["url_list"]:
-            yield pytz.utc.localize(date_parser.parse(r["date"])), r["url"]
-        if not result["has_next"]:
-            break
-        page += 1
+def scan_alienvault(domain, sorted):
+    def request(endpoint):
+        page = 1
+        while True:
+            result = requests.get("https://otx.alienvault.com/otxapi/indicator/%s/url_list/%s?limit=50&page=%d" % (endpoint, domain, page)).json()
+            for r in result["url_list"]:
+                yield pytz.utc.localize(date_parser.parse(r["date"])), r["url"]
+            if not result["has_next"]:
+                break
+            page += 1
+
+    return merge_results(sorted, request("domain"), request("hostname"))
 
 
 def scan_urlscan(domain):
@@ -164,7 +167,7 @@ def scan_hybrid_analysis(domain, api_key):
 
 def scan_all(domain, sorted, hybrid_analysis_key):
     urls = set()
-    providers = [scan_alienvault(domain), scan_urlscan(domain), scan_urlquery(domain)]
+    providers = [scan_alienvault(domain, sorted), scan_urlscan(domain), scan_urlquery(domain)]
     if hybrid_analysis_key:
         providers.append(scan_hybrid_analysis(domain, hybrid_analysis_key))
     else:
