@@ -149,10 +149,28 @@ def scan_urlquery(domain):
                     yield time, value
 
 
-def scan_all(domain, sorted):
+def scan_hybrid_analysis(domain, api_key):
+    results = requests.post("https://www.hybrid-analysis.com/api/v2/search/terms", headers={"api-key": api_key, "User-Agent": "VxApi CLI Connector"}, data={"domain": domain}).json()
+    job_ids = [r["job_id"] for r in results["result"]]
+    data = {}
+    for i in range(len(job_ids)):
+        data["hashes[%d]" % i] = job_ids[i]
+    results = requests.post("https://www.hybrid-analysis.com/api/v2/report/summary", headers={"api-key": api_key, "User-Agent": "VxApi CLI Connector"}, data=data).json()
+    for r in results:
+        url = r["submit_name"]
+        if domain in urlparse(url).netloc:
+            yield date_parser.parse(r["analysis_start_time"]), url
+
+
+def scan_all(domain, sorted, hybrid_analysis_key):
     urls = set()
-    providers = [scan_alienvault, scan_urlscan, scan_urlquery]
-    for time, url in merge_results(sorted, *[provider(domain) for provider in providers]):
+    providers = [scan_alienvault(domain), scan_urlscan(domain), scan_urlquery(domain)]
+    if hybrid_analysis_key:
+        providers.append(scan_hybrid_analysis(domain, hybrid_analysis_key))
+    else:
+        print "\033[93mNo API key for Hybrid Analysis\033[0m"
+
+    for time, url in merge_results(sorted, *providers):
         if url not in urls:
             urls.add(url)
             yield time, url
@@ -163,9 +181,10 @@ if __name__ == "__main__":
     parser.add_argument('--domain', help='The domain to search', required=True)
     parser.add_argument('-f', '--filter', help='Only show URLs with secrets', action='store_true')
     parser.add_argument('-s', '--sorted', help='Sort results from newest to oldest', action='store_true')
+    parser.add_argument('--hybrid-analysis-key', help='The API key for hybrid analysis')
     args = parser.parse_args()
 
-    for time, url in scan_all(args.domain, args.sorted):
+    for time, url in scan_all(args.domain, args.sorted, args.hybrid_analysis_key):
         score = calculate_url_score(url)
         line = "%s - %s" % (str(time), url)
         if score >= 100:
