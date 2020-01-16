@@ -133,23 +133,6 @@ def scan_urlscan(domain):
         offset += 100
 
 
-def scan_urlquery(domain):
-    html = requests.get("https://urlquery.net/search?q=%s" % domain).content
-    soup = BeautifulSoup(html, features="html.parser")
-    for row in soup.findAll('tr', attrs={'class': re.compile("(even|odd)_highlight")}):
-        url = row.find("a")["title"]
-        parsed = urlparse(url)
-        time = date_parser.parse(row.find("center").string)
-
-        if domain in parsed.netloc:
-            yield time, url
-        elif parsed.query:
-            for k, value in parse_qs(parsed.query).items():
-                value = value[0]
-                if value.startswith("http") and domain in urlparse(value).netloc:
-                    yield time, value
-
-
 def scan_hybrid_analysis(domain, api_key):
     results = requests.post("https://www.hybrid-analysis.com/api/v2/search/terms", headers={"api-key": api_key, "User-Agent": "VxApi CLI Connector"}, data={"domain": domain}).json()
     job_ids = [r["job_id"] for r in results["result"]]
@@ -165,7 +148,7 @@ def scan_hybrid_analysis(domain, api_key):
 
 def scan_all(domain, sorted, hybrid_analysis_key):
     urls = set()
-    providers = [scan_alienvault(domain, sorted), scan_urlscan(domain), scan_urlquery(domain)]
+    providers = [scan_alienvault(domain, sorted), scan_urlscan(domain)]
     if hybrid_analysis_key:
         providers.append(scan_hybrid_analysis(domain, hybrid_analysis_key))
     else:
