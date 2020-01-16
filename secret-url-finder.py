@@ -137,6 +137,9 @@ def scan_urlscan(domain):
 def scan_hybrid_analysis(domain, api_key):
     results = requests.post("https://www.hybrid-analysis.com/api/v2/search/terms", headers={"api-key": api_key, "User-Agent": "VxApi CLI Connector"}, data={"domain": domain}).json()
     job_ids = [r["job_id"] for r in results["result"]]
+    if len(job_ids) == 0:
+        return
+
     data = {}
     for i in range(len(job_ids)):
         data["hashes[%d]" % i] = job_ids[i]
