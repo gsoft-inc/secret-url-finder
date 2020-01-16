@@ -171,14 +171,9 @@ class VirusTotalRequester(object):
 def scan_virus_total(domain, requester, should_sort):
     def do_scan(domain):
         response = requester.request(domain)
-        urls = []
         if "undetected_urls" in response:
-            urls.extend(response["undetected_urls"])
-        if "detected_urls" in response:
-            urls.extend(response["detected_urls"])
-
-        for r in urls:
-            yield pytz.utc.localize(date_parser.parse(r[-1])), r[0]
+            for r in response["undetected_urls"]:
+                yield pytz.utc.localize(date_parser.parse(r[-1])), r[0]
 
         if "subdomains" in response:
             for subdomain in response["subdomains"]:
