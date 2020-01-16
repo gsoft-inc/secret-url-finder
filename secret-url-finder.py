@@ -1,7 +1,6 @@
-#!/usr/bin/env python
-
+#!/usr/bin/env python3
 import requests
-from urlparse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs
 from bs4 import BeautifulSoup
 import re
 from dateutil import parser as date_parser
@@ -132,7 +131,6 @@ def scan_urlscan(domain):
         if len(results) < 100:
             break
         offset += 100
-        yield ""
 
 
 def scan_urlquery(domain):
@@ -171,7 +169,7 @@ def scan_all(domain, sorted, hybrid_analysis_key):
     if hybrid_analysis_key:
         providers.append(scan_hybrid_analysis(domain, hybrid_analysis_key))
     else:
-        print "\033[93mNo API key for Hybrid Analysis\033[0m"
+        print("\033[93mNo API key for Hybrid Analysis\033[0m")
 
     for time, url in merge_results(sorted, *providers):
         if url not in urls:
@@ -191,6 +189,6 @@ if __name__ == "__main__":
         score = calculate_url_score(url)
         line = "%s - %s" % (str(time), url)
         if score >= 100:
-            print "\033[91m%s\033[0m" % line
+            print("\033[91m%s\033[0m" % line)
         elif not args.filter:
-            print line
+            print(line)
