@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import requests
 from urllib.parse import urlparse, parse_qs
-from bs4 import BeautifulSoup
 import re
 from dateutil import parser as date_parser
 import math
@@ -10,6 +9,8 @@ import argparse
 import heapq
 import pytz
 import datetime
+from time import sleep
+
 
 ignored_query_string_parameters = ["_ga", "__gda__", "_gac", "gclid", "msclkid", "_hsenc", "mkt_tok"]
 ignored_query_string_prefixes = ["utm_"]
@@ -84,13 +85,13 @@ def calculate_url_score(url):
     return score
 
 
-def merge_results(sorted, *results):
+def merge_results(should_sort, *results):
     # Reverses the time to sort results from most recent to oldest.
     def wrap(results):
         for time, url in results:
             yield pytz.utc.localize(datetime.datetime.max) - time, time, url
 
-    if sorted:
+    if should_sort:
         for offset, time, url in heapq.merge(*[wrap(r) for r in results]):
             yield time, url
     else:
@@ -99,7 +100,7 @@ def merge_results(sorted, *results):
                 yield x
 
 
-def scan_alienvault(domain, sorted):
+def scan_alienvault(domain, should_sort):
     def request(endpoint):
         page = 1
         while True:
@@ -110,7 +111,7 @@ def scan_alienvault(domain, sorted):
                 break
             page += 1
 
-    return merge_results(sorted, request("domain"), request("hostname"))
+    return merge_results(should_sort, request("domain"), request("hostname"))
 
 
 def scan_urlscan(domain):
@@ -146,15 +147,65 @@ def scan_hybrid_analysis(domain, api_key):
             yield date_parser.parse(r["analysis_start_time"]), url
 
 
-def scan_all(domain, sorted, hybrid_analysis_key):
+class VirusTotalRequester(object):
+    def __init__(self, api_key):
+        self.api_key = api_key
+
+    def request(self, domain):
+        throttling_message_displayed = False
+        for i in range(5):
+            response = requests.get('https://www.virustotal.com/vtapi/v2/domain/report', params={'apikey': self.api_key, 'domain': domain})
+            if response.status_code == 200:
+                return response.json()
+            elif response.status_code == 204:
+                if not throttling_message_displayed:
+                    print("\033[93mVirusTotal throttled. Sleeping...\033[0m")
+                    throttling_message_displayed = True
+                sleep(30)
+            else:
+                return {}
+
+        print("\033[93mVirusTotal retry count exceeded.\033[0m")
+
+
+def scan_virus_total(domain, requester, should_sort):
+    def do_scan(domain):
+        response = requester.request(domain)
+        urls = []
+        if "undetected_urls" in response:
+            urls.extend(response["undetected_urls"])
+        if "detected_urls" in response:
+            urls.extend(response["detected_urls"])
+
+        for r in urls:
+            yield pytz.utc.localize(date_parser.parse(r[-1])), r[0]
+
+        if "subdomains" in response:
+            for subdomain in response["subdomains"]:
+                for r in do_scan(subdomain):
+                    yield r
+
+    results = do_scan(domain)
+    if should_sort:
+        results = sorted(results, key=lambda t: t[0], reverse=True)
+    for r in results:
+        yield r
+
+
+def scan_all(domain, should_sort, hybrid_analysis_key, virus_total_key):
     urls = set()
-    providers = [scan_alienvault(domain, sorted), scan_urlscan(domain)]
+    providers = [scan_alienvault(domain, should_sort), scan_urlscan(domain)]
     if hybrid_analysis_key:
         providers.append(scan_hybrid_analysis(domain, hybrid_analysis_key))
     else:
         print("\033[93mNo API key for Hybrid Analysis\033[0m")
 
-    for time, url in merge_results(sorted, *providers):
+    if virus_total_key:
+        providers.append(scan_virus_total(domain, VirusTotalRequester(virus_total_key), should_sort))
+    else:
+        print("\033[93mNo API key for VirusTotal\033[0m")
+
+    for time, url in merge_results(should_sort, *providers):
         if url not in urls:
             urls.add(url)
             yield time, url
@@ -166,9 +217,10 @@ if __name__ == "__main__":
     parser.add_argument('-f', '--filter', help='Only show URLs with secrets', action='store_true')
     parser.add_argument('-s', '--sorted', help='Sort results from newest to oldest', action='store_true')
     parser.add_argument('--hybrid-analysis-key', help='The API key for hybrid analysis')
+    parser.add_argument('--virus-total-key', help='The API key for VirusTotal')
     args = parser.parse_args()
 
-    for time, url in scan_all(args.domain, args.sorted, args.hybrid_analysis_key):
+    for time, url in scan_all(args.domain, args.sorted, args.hybrid_analysis_key, args.virus_total_key):
         score = calculate_url_score(url)
         line = "%s - %s" % (str(time), url)
         if score >= 100:
