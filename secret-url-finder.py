@@ -134,6 +134,33 @@ def scan_urlscan(domain):
         offset += 100
 
 
+def scan_wayback_machine(domain, should_sort):
+    def wrap():
+        wb_url = "http://web.archive.org/cdx/search/cdx?url=%s/&matchType=domain&collapse=urlkey&showResumeKey=true&limit=10000&fl=timestamp,original" % domain
+        resume_key = None
+        while True:
+            has_resume_key = False
+            lines = requests.get(wb_url if not resume_key else "%s&resumeKey=%s" % (wb_url, resume_key)).text.splitlines(False)
+            for line in lines:
+                if has_resume_key:
+                    resume_key = line
+                    continue
+
+                if line:
+                    timestamp, url = line.split(" ", 1)
+                    yield pytz.utc.localize(date_parser.parse(timestamp)), url
+                else:
+                    has_resume_key = True
+
+            if not has_resume_key:
+                break
+
+    results = wrap()
+    if should_sort:
+        results = sorted(results, key=lambda x: x[0], reverse=True)
+    return results
+
+
 def scan_hybrid_analysis(domain, api_key):
     results = requests.post("https://www.hybrid-analysis.com/api/v2/search/terms", headers={"api-key": api_key, "User-Agent": "VxApi CLI Connector"}, data={"domain": domain}).json()
     job_ids = [r["job_id"] for r in results["result"]]
@@ -192,7 +219,7 @@ def scan_virus_total(domain, requester, should_sort):
 
 def scan_all(domain, should_sort, hybrid_analysis_key, virus_total_key):
     urls = set()
-    providers = [scan_alienvault(domain, should_sort), scan_urlscan(domain)]
+    providers = [scan_wayback_machine(domain, should_sort), scan_alienvault(domain, should_sort), scan_urlscan(domain)]
     if hybrid_analysis_key:
         providers.append(scan_hybrid_analysis(domain, hybrid_analysis_key))
     else:
