@@ -250,6 +250,7 @@ if __name__ == "__main__":
     parser.add_argument('--domain', help='The domain to search', required=True)
     parser.add_argument('-f', '--filter', help='Only show URLs with secrets', action='store_true')
     parser.add_argument('-s', '--sorted', help='Sort results from newest to oldest', action='store_true')
+    parser.add_argument('-u', '--url-only', help='Only displays the URLs.', action='store_true')
     parser.add_argument('--hybrid-analysis-key', help='The API key for hybrid analysis')
     parser.add_argument('--virus-total-key', help='The API key for VirusTotal')
     parser.add_argument('--ignored-extensions', help='File extensions to ignore. Defaults to: "%s"' % default_ignored_extensions, default=default_ignored_extensions)
@@ -260,7 +261,12 @@ if __name__ == "__main__":
 
     for time, url in results:
         score = calculate_url_score(url)
-        line = "%s - %s" % (str(time), url)
+
+        if args.url_only:
+            line = url
+        else:
+            line = "%s - %s" % (str(time), url)
+
         if score >= 100:
             print("\033[91m%s\033[0m" % line)
         elif not args.filter:
