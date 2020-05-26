@@ -236,16 +236,29 @@ def scan_all(domain, should_sort, hybrid_analysis_key, virus_total_key):
             yield time, url
 
 
+def filter_extensions(results, ignored_extensions):
+    for time, url in results:
+        last_part = urlparse(url).path.split("/")[-1].lower()
+        if any(ext for ext in ignored_extensions if last_part.endswith("." + ext)):
+            continue
+        yield time, url
+
+
 if __name__ == "__main__":
+    default_ignored_extensions = "gif,jpg,png,css,svg,woff,woff2"
     parser = argparse.ArgumentParser(description='Find secret URLs.')
     parser.add_argument('--domain', help='The domain to search', required=True)
     parser.add_argument('-f', '--filter', help='Only show URLs with secrets', action='store_true')
     parser.add_argument('-s', '--sorted', help='Sort results from newest to oldest', action='store_true')
     parser.add_argument('--hybrid-analysis-key', help='The API key for hybrid analysis')
     parser.add_argument('--virus-total-key', help='The API key for VirusTotal')
+    parser.add_argument('--ignored-extensions', help='File extensions to ignore. Defaults to: "%s"' % default_ignored_extensions, default=default_ignored_extensions)
     args = parser.parse_args()
 
-    for time, url in scan_all(args.domain, args.sorted, args.hybrid_analysis_key, args.virus_total_key):
+    results = scan_all(args.domain, args.sorted, args.hybrid_analysis_key, args.virus_total_key)
+    results = filter_extensions(results, [ext.lower() for ext in args.ignored_extensions.split(",")])
+
+    for time, url in results:
         score = calculate_url_score(url)
         line = "%s - %s" % (str(time), url)
         if score >= 100:
