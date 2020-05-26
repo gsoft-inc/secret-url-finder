@@ -1,4 +1,5 @@
 from providers.alienvault_otx_provider import AlienVaultOTXProvider
+from providers.common_crawl_provider import CommonCrawlProvider
 from providers.hybrid_analysis_provider import HybridAnalysisProvider
 from providers.urlscan_provider import UrlScanProvider
 from providers.virustotal_provider import VirusTotalProvider
@@ -7,6 +8,7 @@ from providers.wayback_machine_provider import WaybackMachineProvider
 
 def create_providers(filtered_extensions, should_sort, hybrid_analysis_key, virus_total_key):
     yield UrlScanProvider(filtered_extensions)
+    yield CommonCrawlProvider(filtered_extensions)
     yield WaybackMachineProvider(filtered_extensions, should_sort)
     yield AlienVaultOTXProvider(filtered_extensions, should_sort)
 
