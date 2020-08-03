@@ -8,9 +8,6 @@ def compile_re(s):
     return re.compile(r"^" + s + r"$", re.IGNORECASE)
 
 
-ignored_query_string_parameters = ["_ga", "__gda__", "_gac", "gclid", "msclkid", "_hsenc", "mkt_tok"]
-ignored_query_string_prefixes = ["utm_"]
-
 SECRET_REGEX = {
     compile_re("'^[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}\Z'"): ["UUID"],
     compile_re(r'(?:[A-Za-z0-9+/]{4}){2,}(?:[A-Za-z0-9+/]{2}[AEIMQUYcgkosw048]=|[A-Za-z0-9+/][AQgw]==)'): ["base64"],
@@ -66,8 +63,6 @@ def calculate_url_score(url):
     for k, value in qs.items():
         k = k.lower()
         value = value[0]
-        if any([k.startswith(prefix) for prefix in ignored_query_string_prefixes]) or k in ignored_query_string_parameters:
-            continue
 
         if urlparse(value).netloc:
             score += calculate_url_score(value)
