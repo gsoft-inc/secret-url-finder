@@ -2,7 +2,7 @@ from urllib.parse import urlparse, parse_qsl, urlencode, ParseResult
 
 
 class BaseProvider(object):
-    ignored_query_string_parameters = ["_ga", "__gda__", "_gac", "gclid", "msclkid", "_hsenc", "_hsmi", "mkt_tok"]
+    ignored_query_string_parameters = ["_ga", "__gda__", "_gac", "gclid", "msclkid", "_hsenc", "_hsmi", "mkt_tok", "ref"]
     ignored_query_string_prefixes = ["utm_"]
 
     def __init__(self, ignored_extensions, should_sort):
