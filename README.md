@@ -21,7 +21,9 @@ optional arguments:
   -h, --help            show this help message and exit
   -f, --filter          Only show URLs with secrets
   -s, --sorted          Sort results from newest to oldest
-  -u, --url-only        Only displays the URLs.
+  -u, --url-only        Only displays the URLs
+  --urlscan-key         URLSCAN_KEY
+                        The API key for urlscan. Not mandatory, but helps with rate limiting
   --hybrid-analysis-key HYBRID_ANALYSIS_KEY
                         The API key for hybrid analysis
   --virus-total-key VIRUS_TOTAL_KEY

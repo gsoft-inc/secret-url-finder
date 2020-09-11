@@ -8,7 +8,7 @@ import os
 
 def print_urls_for_domain(domain, args):
     urls = set()
-    providers = create_providers([ext.lower() for ext in args.ignored_extensions.split(",")], args.sorted, args.hybrid_analysis_key, args.virus_total_key)
+    providers = create_providers([ext.lower() for ext in args.ignored_extensions.split(",")], args.sorted, args.urlscan_key, args.hybrid_analysis_key, args.virus_total_key)
     generators = [provider.fetch(domain) for provider in providers]
     for time, url in merge_results(args.sorted, *generators):
         if url in urls:
@@ -32,7 +32,8 @@ if __name__ == "__main__":
     parser.add_argument('--domain', help='The domain to search or a file containing domains.', required=True)
     parser.add_argument('-f', '--filter', help='Only show URLs with secrets', action='store_true')
     parser.add_argument('-s', '--sorted', help='Sort results from newest to oldest', action='store_true')
-    parser.add_argument('-u', '--url-only', help='Only displays the URLs.', action='store_true')
+    parser.add_argument('-u', '--url-only', help='Only displays the URLs', action='store_true')
+    parser.add_argument('--urlscan-key', help='The API key for urlscan. Not mandatory, but helps with rate limiting')
     parser.add_argument('--hybrid-analysis-key', help='The API key for hybrid analysis')
     parser.add_argument('--virus-total-key', help='The API key for VirusTotal')
     parser.add_argument('--ignored-extensions', help='File extensions to ignore. Defaults to: "%s"' % default_ignored_extensions, default=default_ignored_extensions)

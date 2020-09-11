@@ -6,8 +6,8 @@ from providers.virustotal_provider import VirusTotalProvider
 from providers.wayback_machine_provider import WaybackMachineProvider
 
 
-def create_providers(filtered_extensions, should_sort, hybrid_analysis_key, virus_total_key):
-    yield UrlScanProvider(filtered_extensions)
+def create_providers(filtered_extensions, should_sort, urlscan_key, hybrid_analysis_key, virus_total_key):
+    yield UrlScanProvider(urlscan_key, filtered_extensions)
     yield CommonCrawlProvider(filtered_extensions)
     yield WaybackMachineProvider(filtered_extensions, should_sort)
     yield AlienVaultOTXProvider(filtered_extensions, should_sort)
