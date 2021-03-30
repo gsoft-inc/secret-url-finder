@@ -31,3 +31,7 @@ optional arguments:
   --ignored-extensions IGNORED_EXTENSIONS
                         File extensions to ignore. Defaults to: "gif,jpg,png,css,svg,woff,woff2"
 ```
+
+## License
+
+Copyright © 2020, GSoft inc. This code is licensed under the Apache License, Version 2.0. You may obtain a copy of this license [here](https://github.com/gsoft-inc/gsoft-license/blob/master/LICENSE).
