@@ -26,7 +26,7 @@ def print_urls_for_domain(domain, args):
             print(line)
 
 
-if __name__ == "__main__":
+def main():
     default_ignored_extensions = "gif,jpg,png,css,svg,woff,woff2"
     parser = argparse.ArgumentParser(description='Find secret URLs.')
     parser.add_argument('--domain', help='The domain to search or a file containing domains.', required=True)
@@ -49,5 +49,5 @@ if __name__ == "__main__":
         print_urls_for_domain(domain, args)
 
 
-
-
+if __name__ == "__main__":
+    main()

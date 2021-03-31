@@ -1,9 +1,9 @@
-from providers.alienvault_otx_provider import AlienVaultOTXProvider
-from providers.common_crawl_provider import CommonCrawlProvider
-from providers.hybrid_analysis_provider import HybridAnalysisProvider
-from providers.urlscan_provider import UrlScanProvider
-from providers.virustotal_provider import VirusTotalProvider
-from providers.wayback_machine_provider import WaybackMachineProvider
+from .alienvault_otx_provider import AlienVaultOTXProvider
+from .common_crawl_provider import CommonCrawlProvider
+from .hybrid_analysis_provider import HybridAnalysisProvider
+from .urlscan_provider import UrlScanProvider
+from .virustotal_provider import VirusTotalProvider
+from .wayback_machine_provider import WaybackMachineProvider
 
 
 def create_providers(filtered_extensions, should_sort, urlscan_key, hybrid_analysis_key, virus_total_key):
