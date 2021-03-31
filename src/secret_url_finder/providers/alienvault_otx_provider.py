@@ -1,4 +1,4 @@
-from providers.base_provider import BaseProvider
+from .base_provider import BaseProvider
 import requests
 from dateutil import parser as date_parser
 from util import merge_results

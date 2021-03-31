@@ -9,10 +9,16 @@ Tool that finds URLs for a given domain by using different sources:
 
 URLs that could contain secret values are highlighted in red.
 
+## Setup
+Install secret-url-finder
+```
+python3 setup.py install
+```
+
 ## Usage
 
 ```
-secret-url-finder.py [-h] --domain DOMAIN [-f] [-s] [-u] [--hybrid-analysis-key HYBRID_ANALYSIS_KEY] [--virus-total-key VIRUS_TOTAL_KEY] [--ignored-extensions IGNORED_EXTENSIONS]
+secret-url-finder [-h] --domain DOMAIN [-f] [-s] [-u] [--hybrid-analysis-key HYBRID_ANALYSIS_KEY] [--virus-total-key VIRUS_TOTAL_KEY] [--ignored-extensions IGNORED_EXTENSIONS]
 
 required arguments:
   --domain DOMAIN       The domain to search
@@ -34,4 +40,4 @@ optional arguments:
 
 ## License
 
-Copyright © 2020, GSoft inc. This code is licensed under the Apache License, Version 2.0. You may obtain a copy of this license [here](https://github.com/gsoft-inc/gsoft-license/blob/master/LICENSE).
+Copyright © 2021, GSoft inc. This code is licensed under the Apache License, Version 2.0. You may obtain a copy of this license [here](https://github.com/gsoft-inc/gsoft-license/blob/master/LICENSE).
