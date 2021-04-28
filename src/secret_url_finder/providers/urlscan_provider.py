@@ -24,8 +24,7 @@ class UrlScanProvider(BaseProvider):
     def fetch_internal(self, domain):
         params = {
             "q": f"domain:{domain}",
-            "sort_field": "date",
-            "sort_order": "desc",
+            "sort": "date:desc",
             "size": self.request_size
         }
         while True:
@@ -33,7 +32,8 @@ class UrlScanProvider(BaseProvider):
             if "results" not in response:
                 return
 
-            for result in response["results"]:
+            results = response["results"]
+            for result in results:
                 url = result["page"]["url"]
                 time = date_parser.parse(result["task"]["time"])
                 if domain in urlparse(url).netloc:
