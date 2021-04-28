@@ -29,8 +29,11 @@ class UrlScanProvider(BaseProvider):
             "size": self.request_size
         }
         while True:
-            results = self.request("search", "https://urlscan.io/api/v1/search/", params).json()["results"]
-            for result in results:
+            response = self.request("search", "https://urlscan.io/api/v1/search/", params).json()
+            if "results" not in response:
+                return
+
+            for result in response["results"]:
                 url = result["page"]["url"]
                 time = date_parser.parse(result["task"]["time"])
                 if domain in urlparse(url).netloc:
